@@ -1,45 +1,48 @@
-import React, { useEffect, useRef } from 'react';
-import { AmbientLight, PerspectiveCamera, PointLight, Scene, WebGLRenderer } from 'three';
+import React, { useState, useEffect, useRef } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { OrbitControls } from '@react-three/drei';
 
-function App() {
-  const canvasRef = useRef(null);
+function Model({ url, initialPosition }) {
+  const [model, setModel] = useState(null);
+  const [position, setPosition] = useState(initialPosition);
+  const groupRef = useRef();
 
   useEffect(() => {
-    const scene = new Scene();
-    const camera = new PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 10;
-
-    const renderer = new WebGLRenderer({ alpha: true, antialias: true, canvas: canvasRef.current });
-    renderer.setClearColor(0x000000, 0);
-    renderer.setSize(1280, 720);
-
-    const aLight = new AmbientLight(0x404040, 1.2);
-    scene.add(aLight);
-
-    const pLight = new PointLight(0xffffff, 1.2);
-    pLight.position.set(0, -3, 7);
-    scene.add(pLight);
-
     const loader = new GLTFLoader();
-    loader.load('/3D-models/scene.gltf', function (gltf) {
-      const obj = gltf.scene;
-      obj.scale.set(1.3, 1.3, 1.3);
-      scene.add(obj);
+    loader.load(url, gltf => {
+      setModel(gltf.scene);
     });
+  }, [url]);
 
-    function render() {
-      renderer.render(scene, camera);
-      requestAnimationFrame(render);
+  useFrame(() => {
+    if (groupRef.current) {
+      groupRef.current.position.x = position.x;
+      groupRef.current.position.y = position.y;
+      groupRef.current.position.z = position.z;
     }
-
-    render();
-  }, []);
+  });
 
   return (
-    <div className="App">
-      <h1>Welcome to <br /> My first 3D site</h1>
-      <canvas ref={canvasRef} />
+    <group ref={groupRef}>
+      {model && (
+        <mesh>
+          <primitive object={model} />
+        </mesh>
+      )}
+    </group>
+  );
+}
+
+function App() {
+  return (
+    <div className="App" style={{ width: '100%', height: '90vh' }}>
+      <Canvas>
+        <ambientLight />
+        <pointLight position={[10, 10, 10]} />
+        <Model url="3D-models/scene.gltf" initialPosition={{ x: 0, y: 0, z: 0 }} />
+        <OrbitControls />
+      </Canvas>
     </div>
   );
 }
